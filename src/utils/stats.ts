@@ -1,14 +1,14 @@
 import type { WorkoutLog } from '../types'
 
-export function setVolume(reps?: number, weightKg?: number): number {
-  if (!reps || !weightKg) return 0
-  return reps * weightKg
+export function setVolume(reps?: number, weightLb?: number): number {
+  if (!reps || !weightLb) return 0
+  return reps * weightLb
 }
 
 export function logVolume(log: WorkoutLog): number {
   return log.exercises.reduce(
     (sum, ex) =>
-      sum + ex.sets.reduce((s, set) => s + setVolume(set.reps, set.weightKg), 0),
+      sum + ex.sets.reduce((s, set) => s + setVolume(set.reps, set.weightLb), 0),
     0,
   )
 }
@@ -26,7 +26,7 @@ export function logsInLastDays(logs: WorkoutLog[], days: number): WorkoutLog[] {
 
 export interface ExerciseHistoryPoint {
   date: string
-  maxWeightKg: number
+  maxWeightLb: number
   volume: number
   bestSetReps: number
 }
@@ -39,17 +39,17 @@ export function exerciseHistory(
   for (const log of sortedByDateDesc(logs).reverse()) {
     const entry = log.exercises.find((e) => e.exerciseId === exerciseId)
     if (!entry || entry.sets.length === 0) continue
-    let maxWeightKg = 0
+    let maxWeightLb = 0
     let bestSetReps = 0
     let volume = 0
     for (const set of entry.sets) {
-      volume += setVolume(set.reps, set.weightKg)
-      if ((set.weightKg ?? 0) > maxWeightKg) {
-        maxWeightKg = set.weightKg ?? 0
+      volume += setVolume(set.reps, set.weightLb)
+      if ((set.weightLb ?? 0) > maxWeightLb) {
+        maxWeightLb = set.weightLb ?? 0
         bestSetReps = set.reps ?? 0
       }
     }
-    points.push({ date: log.date, maxWeightKg, volume, bestSetReps })
+    points.push({ date: log.date, maxWeightLb, volume, bestSetReps })
   }
   return points
 }
@@ -61,6 +61,6 @@ export function personalBest(
   const history = exerciseHistory(logs, exerciseId)
   if (history.length === 0) return undefined
   return history.reduce((best, p) =>
-    p.maxWeightKg > best.maxWeightKg ? p : best,
+    p.maxWeightLb > best.maxWeightLb ? p : best,
   )
 }

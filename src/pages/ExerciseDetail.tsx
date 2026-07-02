@@ -66,7 +66,7 @@ function ExerciseView({ id }: { id: string }) {
         <Card>
           <p className="text-xs text-gray-400 uppercase tracking-wide">Personal Best</p>
           <p className="text-lg text-white font-medium mt-1">
-            {best.maxWeightKg} kg × {best.bestSetReps} reps
+            {best.maxWeightLb} lbs × {best.bestSetReps} reps
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
             {new Date(best.date).toLocaleDateString()} · logged {history.length} time

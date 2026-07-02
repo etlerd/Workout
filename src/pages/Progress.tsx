@@ -39,7 +39,7 @@ export default function Progress() {
       month: 'short',
       day: 'numeric',
     }),
-    weight: h.maxWeightKg,
+    weight: h.maxWeightLb,
     volume: h.volume,
   }))
 
@@ -73,7 +73,7 @@ export default function Progress() {
                     Best Weight
                   </p>
                   <p className="text-xl text-white font-semibold mt-1">
-                    {Math.max(...history.map((h) => h.maxWeightKg))} kg
+                    {Math.max(...history.map((h) => h.maxWeightLb))} lbs
                   </p>
                 </Card>
                 <Card>
@@ -89,7 +89,7 @@ export default function Progress() {
                     Latest Volume
                   </p>
                   <p className="text-xl text-white font-semibold mt-1">
-                    {history[history.length - 1]?.volume.toLocaleString()} kg
+                    {history[history.length - 1]?.volume.toLocaleString()} lbs
                   </p>
                 </Card>
               </div>
@@ -119,7 +119,7 @@ export default function Progress() {
                         stroke={ACCENT}
                         strokeWidth={2}
                         dot={{ r: 3, fill: ACCENT }}
-                        name="Max weight (kg)"
+                        name="Max weight (lbs)"
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -151,7 +151,7 @@ export default function Progress() {
                         stroke="#38bdf8"
                         strokeWidth={2}
                         dot={{ r: 3, fill: '#38bdf8' }}
-                        name="Volume (kg)"
+                        name="Volume (lbs)"
                       />
                     </LineChart>
                   </ResponsiveContainer>

@@ -30,7 +30,7 @@ export interface Exercise {
 
 export interface SetEntry {
   reps?: number
-  weightKg?: number
+  weightLb?: number
   durationSec?: number
 }
 
@@ -54,6 +54,7 @@ export interface ProgramExercise {
   exerciseId: string
   targetSets: number
   targetReps: string // e.g. "8-12" or "AMRAP"
+  targetWeight?: string // e.g. "70-90 lbs" or "Resistance 3-4"
 }
 
 export interface ProgramDay {

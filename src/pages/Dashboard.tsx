@@ -43,7 +43,7 @@ export default function Dashboard() {
           </p>
           <p className="text-2xl text-white font-semibold mt-1">
             {totalVolumeThisWeek.toLocaleString()}
-            <span className="text-sm text-gray-500 ml-1">kg</span>
+            <span className="text-sm text-gray-500 ml-1">lbs</span>
           </p>
         </Card>
         <Card>

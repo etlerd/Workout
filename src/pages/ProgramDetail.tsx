@@ -66,15 +66,21 @@ export default function ProgramDetail() {
                 Start Workout
               </Link>
             </div>
-            <ul className="space-y-1">
+            <ul className="space-y-1.5">
               {day.exercises.map((pe, i) => (
-                <li
-                  key={i}
-                  className="flex items-center justify-between text-sm text-gray-300 py-1"
-                >
-                  <span>{exerciseById.get(pe.exerciseId)?.name ?? 'Unknown'}</span>
-                  <span className="text-gray-500">
-                    {pe.targetSets} × {pe.targetReps}
+                <li key={i} className="flex items-center justify-between text-sm py-1">
+                  <span className="text-gray-300">
+                    {exerciseById.get(pe.exerciseId)?.name ?? 'Unknown'}
+                  </span>
+                  <span className="text-right">
+                    <span className="text-gray-500">
+                      {pe.targetSets} × {pe.targetReps}
+                    </span>
+                    {pe.targetWeight && (
+                      <span className="block text-xs text-gray-600">
+                        {pe.targetWeight}
+                      </span>
+                    )}
                   </span>
                 </li>
               ))}

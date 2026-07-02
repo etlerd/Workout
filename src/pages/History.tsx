@@ -64,7 +64,7 @@ export default function History() {
               </div>
               {logVolume(log) > 0 && (
                 <p className="text-xs text-gray-500 mt-2">
-                  Volume: {logVolume(log).toLocaleString()} kg
+                  Volume: {logVolume(log).toLocaleString()} lbs
                 </p>
               )}
             </Card>

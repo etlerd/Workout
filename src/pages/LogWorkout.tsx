@@ -14,17 +14,19 @@ import type { Exercise } from '../types'
 
 interface EditableSet {
   reps: string
-  weightKg: string
+  weightLb: string
   durationSec: string
 }
 
 interface EditableExercise {
   exerciseId: string
   sets: EditableSet[]
+  targetReps?: string
+  targetWeight?: string
 }
 
 function emptySet(): EditableSet {
-  return { reps: '', weightKg: '', durationSec: '' }
+  return { reps: '', weightLb: '', durationSec: '' }
 }
 
 function todayStr(): string {
@@ -116,10 +118,10 @@ export default function LogWorkout() {
         .map((item) => ({
           exerciseId: item.exerciseId,
           sets: item.sets
-            .filter((s) => s.reps || s.weightKg || s.durationSec)
+            .filter((s) => s.reps || s.weightLb || s.durationSec)
             .map((s) => ({
               reps: s.reps ? Number(s.reps) : undefined,
-              weightKg: s.weightKg ? Number(s.weightKg) : undefined,
+              weightLb: s.weightLb ? Number(s.weightLb) : undefined,
               durationSec: s.durationSec ? Number(s.durationSec) : undefined,
             })),
         }))
@@ -175,9 +177,17 @@ export default function LogWorkout() {
           return (
             <Card key={exIndex}>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium text-white">
-                  {exercise?.name ?? 'Unknown exercise'}
-                </h3>
+                <div>
+                  <h3 className="font-medium text-white">
+                    {exercise?.name ?? 'Unknown exercise'}
+                  </h3>
+                  {(item.targetReps || item.targetWeight) && (
+                    <p className="text-xs text-emerald-400/80 mt-0.5">
+                      Target: {item.targetReps}
+                      {item.targetWeight ? ` · ${item.targetWeight}` : ''}
+                    </p>
+                  )}
+                </div>
                 <button
                   onClick={() => removeExercise(exIndex)}
                   className="text-xs text-gray-500 hover:text-red-400"
@@ -189,7 +199,7 @@ export default function LogWorkout() {
                 <div className="grid grid-cols-[2rem_1fr_1fr_1fr_2rem] gap-2 text-xs text-gray-500 px-1">
                   <span>Set</span>
                   <span>Reps</span>
-                  <span>Weight (kg)</span>
+                  <span>Weight (lbs)</span>
                   <span>Duration (s)</span>
                   <span></span>
                 </div>
@@ -211,9 +221,9 @@ export default function LogWorkout() {
                     />
                     <input
                       inputMode="decimal"
-                      value={set.weightKg}
+                      value={set.weightLb}
                       onChange={(e) =>
-                        updateSet(exIndex, setIndex, 'weightKg', e.target.value)
+                        updateSet(exIndex, setIndex, 'weightLb', e.target.value)
                       }
                       className="rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
@@ -310,7 +320,7 @@ function buildInitialItems(
       sets: ex.sets.length
         ? ex.sets.map((s) => ({
             reps: s.reps?.toString() ?? '',
-            weightKg: s.weightKg?.toString() ?? '',
+            weightLb: s.weightLb?.toString() ?? '',
             durationSec: s.durationSec?.toString() ?? '',
           }))
         : [emptySet()],
@@ -323,6 +333,8 @@ function buildInitialItems(
       return day.exercises.map((pe) => ({
         exerciseId: pe.exerciseId,
         sets: Array.from({ length: pe.targetSets || 1 }, () => emptySet()),
+        targetReps: pe.targetReps,
+        targetWeight: pe.targetWeight,
       }))
     }
   }

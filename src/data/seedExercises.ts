@@ -249,6 +249,7 @@ export const seedExercises: Exercise[] = [
     tips: [
       'Keep your lower back flat against the pad throughout.',
       'Avoid letting your knees cave inward.',
+      'A higher foot placement on the platform emphasizes the glutes and hamstrings; a lower placement emphasizes the quads.',
     ],
   },
   {
@@ -371,6 +372,98 @@ export const seedExercises: Exercise[] = [
     tips: [
       'Avoid leaning to one side — keep your torso upright.',
       'Grip the weights firmly rather than letting them swing.',
+    ],
+  },
+  {
+    id: 'recumbent-bike',
+    name: 'Recumbent Bike',
+    category: 'Cardio',
+    equipment: 'Machine',
+    instructions: [
+      'Adjust the seat so your knee has a slight bend at the bottom of the pedal stroke.',
+      'Set the resistance level and start pedaling at a steady, comfortable pace.',
+      'Keep your back against the seat back throughout — the reclined position supports your lower back.',
+    ],
+    tips: [
+      'Use a low-to-moderate resistance for warm-ups; save higher resistance for dedicated cardio sessions.',
+      'The reclined seat makes this a good low-impact option for sensitive knees or backs.',
+    ],
+  },
+  {
+    id: 'seated-row-machine',
+    name: 'Seated Row (Machine)',
+    category: 'Back',
+    equipment: 'Machine',
+    instructions: [
+      'Sit at the machine with feet on the platform and knees slightly bent, chest against the pad if provided.',
+      'Grip the handles with arms extended toward the weight stack.',
+      'Pull the handles toward your torso, squeezing your shoulder blades together.',
+      'Extend your arms back out under control without rounding your back.',
+    ],
+    tips: [
+      'Keep your torso upright — avoid rocking back and forth to move the weight.',
+      'Lead the pull with your elbows, not your hands.',
+    ],
+  },
+  {
+    id: 'chest-press-machine',
+    name: 'Chest Press Machine',
+    category: 'Chest',
+    equipment: 'Machine',
+    instructions: [
+      'Adjust the seat so the handles line up with the middle of your chest.',
+      'Grip the handles and press them forward until your arms are extended without locking your elbows.',
+      'Return to the starting position under control, letting your elbows travel back behind your torso.',
+    ],
+    tips: [
+      'Keep your shoulder blades pulled back and down against the seat throughout the press.',
+      'Avoid flaring your elbows up toward your ears.',
+    ],
+  },
+  {
+    id: 'cable-bicep-curl',
+    name: 'Cable Bicep Curl',
+    category: 'Arms',
+    equipment: 'Cable',
+    instructions: [
+      'Stand facing a low cable pulley with a straight or EZ-curl bar attached.',
+      'Grip the bar with palms facing up, elbows at your sides.',
+      'Curl the bar up toward your shoulders without moving your elbows forward.',
+      'Lower back down under control to full arm extension.',
+    ],
+    tips: [
+      'The constant tension of the cable keeps your biceps loaded through the full range of motion.',
+      'Avoid swinging your torso to generate momentum.',
+    ],
+  },
+  {
+    id: 'hip-abductor-machine',
+    name: 'Hip Abductor Machine',
+    category: 'Legs',
+    equipment: 'Machine',
+    instructions: [
+      'Sit in the machine with the outside of your thighs against the pads, knees together.',
+      'Push your legs outward against the resistance in a controlled motion.',
+      'Return to the starting position under control without letting the weight stack slam down.',
+    ],
+    tips: [
+      'Machine resistance often feels lighter than the marked weight — start conservatively.',
+      'Keep your back flat against the seat rather than arching to generate extra force.',
+    ],
+  },
+  {
+    id: 'hip-adductor-machine',
+    name: 'Hip Adductor Machine',
+    category: 'Legs',
+    equipment: 'Machine',
+    instructions: [
+      'Sit in the machine with the inside of your thighs against the pads, legs spread apart.',
+      'Squeeze your legs together against the resistance in a controlled motion.',
+      'Return to the starting position under control without letting the weight stack slam down.',
+    ],
+    tips: [
+      'Machine resistance often feels lighter than the marked weight — start conservatively.',
+      'Move through a comfortable range of motion rather than forcing a full stretch.',
     ],
   },
 ]
