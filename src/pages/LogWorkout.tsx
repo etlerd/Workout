@@ -75,7 +75,7 @@ export default function LogWorkout() {
   function addExercise(exercise: Exercise) {
     setItems((prev) => [
       ...prev,
-      { exerciseId: exercise.id, sets: [emptySet()], included: true },
+      { exerciseId: exercise.id, sets: [emptySet()], included: false },
     ])
     setPickerOpen(false)
   }
@@ -229,8 +229,8 @@ export default function LogWorkout() {
                       </p>
                     )}
                     {!item.included && (
-                      <p className="text-xs text-amber-400/80 mt-0.5">
-                        Won't be logged — machine unavailable
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Not logged — check off if you did this one
                       </p>
                     )}
                   </div>
@@ -421,7 +421,7 @@ function buildInitialItems(
     if (day) {
       return day.exercises.map((pe) => ({
         exerciseId: pe.exerciseId,
-        included: true,
+        included: false,
         sets: Array.from({ length: pe.targetSets || 1 }, () =>
           prefilledSet(pe.targetReps, pe.targetWeight),
         ),
