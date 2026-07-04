@@ -10,3 +10,21 @@ body {
   color: #e5e7eb;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
 }
+
+@keyframes emoji-confetti-fall {
+  0% {
+    transform: translate(0, -10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--drift), 110vh) rotate(360deg);
+    opacity: 0.95;
+  }
+}
+
+.emoji-confetti-particle {
+  animation-name: emoji-confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+  will-change: transform, opacity;
+}

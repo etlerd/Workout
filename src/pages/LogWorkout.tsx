@@ -10,8 +10,11 @@ import {
 } from '../data/repo'
 import Card from '../components/Card'
 import ExercisePicker from '../components/ExercisePicker'
+import EmojiConfetti from '../components/EmojiConfetti'
 import type { Exercise, Program, ProgramDay, WorkoutLog } from '../types'
 import { parseTargetReps, parseTargetWeight } from '../utils/targetParsing'
+
+const CELEBRATION_DELAY_MS = 1400
 
 interface EditableSet {
   reps: string
@@ -113,6 +116,7 @@ export default function LogWorkout() {
   )
   const [pickerOpen, setPickerOpen] = useState(false)
   const [confirmingSkips, setConfirmingSkips] = useState(false)
+  const [showCelebration, setShowCelebration] = useState(false)
 
   const exerciseById = useMemo(
     () => new Map(exercises.map((e) => [e.id, e])),
@@ -239,7 +243,8 @@ export default function LogWorkout() {
     } else {
       addWorkoutLog(payload)
     }
-    navigate('/history')
+    setShowCelebration(true)
+    setTimeout(() => navigate('/history'), CELEBRATION_DELAY_MS)
   }
 
   function handleDelete() {
@@ -433,10 +438,10 @@ export default function LogWorkout() {
       <div className="flex gap-3">
         <button
           onClick={handleSaveClick}
-          disabled={items.length === 0}
+          disabled={items.length === 0 || showCelebration}
           className="px-4 py-2 rounded-md bg-emerald-500 text-black font-medium text-sm hover:bg-emerald-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          Save Workout
+          {showCelebration ? 'Saved!' : 'Save Workout'}
         </button>
         {existingLog && (
           <button
@@ -451,6 +456,8 @@ export default function LogWorkout() {
       {pickerOpen && (
         <ExercisePicker onPick={addExercise} onClose={() => setPickerOpen(false)} />
       )}
+
+      {showCelebration && <EmojiConfetti />}
 
       {confirmingSkips && (
         <div
