@@ -4,8 +4,17 @@ import { loadList, newId, saveList } from './storage'
 import { seedExercises } from './seedExercises'
 import { seedPrograms } from './seedPrograms'
 
-function createCollection<T>(key: string, seed: T[]) {
-  let items = loadList<T>(key, seed)
+function mergeMissingSeedItems<T extends { id: string }>(
+  existing: T[],
+  seed: T[],
+): T[] {
+  const existingIds = new Set(existing.map((item) => item.id))
+  const missing = seed.filter((item) => !existingIds.has(item.id))
+  return missing.length > 0 ? [...existing, ...missing] : existing
+}
+
+function createCollection<T extends { id: string }>(key: string, seed: T[]) {
+  let items = mergeMissingSeedItems(loadList<T>(key, seed), seed)
   const listeners = new Set<() => void>()
 
   function persist() {
@@ -26,13 +35,11 @@ function createCollection<T>(key: string, seed: T[]) {
       persist()
     },
     update(id: string, updater: (item: T) => T) {
-      items = items.map((i) =>
-        (i as unknown as { id: string }).id === id ? updater(i) : i,
-      )
+      items = items.map((i) => (i.id === id ? updater(i) : i))
       persist()
     },
     remove(id: string) {
-      items = items.filter((i) => (i as unknown as { id: string }).id !== id)
+      items = items.filter((i) => i.id !== id)
       persist()
     },
     subscribe(listener: () => void) {
