@@ -133,7 +133,7 @@ export default function ProgramEditor() {
               <input
                 value={day.name}
                 onChange={(e) => updateDayName(dayIndex, e.target.value)}
-                className="font-medium text-white bg-transparent border-b border-transparent focus:border-white/20 focus:outline-none flex-1"
+                className="font-medium text-white bg-transparent border-b border-transparent focus:border-white/20 focus:outline-none flex-1 min-w-0"
               />
               <button
                 onClick={() => removeDay(dayIndex)}
@@ -158,7 +158,7 @@ export default function ProgramEditor() {
                   key={exIndex}
                   className="grid grid-cols-[1fr_3.5rem_4rem_6rem_1.5rem] gap-2 items-center"
                 >
-                  <span className="text-sm text-gray-300 truncate">
+                  <span className="text-sm text-gray-300 truncate min-w-0">
                     {exerciseById.get(pe.exerciseId)?.name ?? 'Unknown'}
                   </span>
                   <input
@@ -172,7 +172,7 @@ export default function ProgramEditor() {
                         Number(e.target.value) || 0,
                       )
                     }
-                    className="rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                   <input
                     value={pe.targetReps}
@@ -184,7 +184,7 @@ export default function ProgramEditor() {
                         e.target.value,
                       )
                     }
-                    className="rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                   <input
                     placeholder="e.g. 40-50 lbs"
@@ -197,7 +197,7 @@ export default function ProgramEditor() {
                         e.target.value,
                       )
                     }
-                    className="rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                   <button
                     onClick={() => removeExerciseFromDay(dayIndex, exIndex)}
