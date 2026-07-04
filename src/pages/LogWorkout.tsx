@@ -16,7 +16,7 @@ import { parseTargetReps, parseTargetWeight } from '../utils/targetParsing'
 interface EditableSet {
   reps: string
   weightLb: string
-  durationSec: string
+  durationMin: string
 }
 
 interface EditableExercise {
@@ -28,16 +28,16 @@ interface EditableExercise {
 }
 
 function emptySet(): EditableSet {
-  return { reps: '', weightLb: '', durationSec: '' }
+  return { reps: '', weightLb: '', durationMin: '' }
 }
 
 function prefilledSet(targetReps?: string, targetWeight?: string): EditableSet {
-  const { reps, durationSec } = parseTargetReps(targetReps)
+  const { reps, durationMin } = parseTargetReps(targetReps)
   const weightLb = parseTargetWeight(targetWeight)
   return {
     reps: reps !== undefined ? String(reps) : '',
     weightLb: weightLb !== undefined ? String(weightLb) : '',
-    durationSec: durationSec !== undefined ? String(durationSec) : '',
+    durationMin: durationMin !== undefined ? String(durationMin) : '',
   }
 }
 
@@ -224,11 +224,11 @@ export default function LogWorkout() {
         .map((item) => ({
           exerciseId: item.exerciseId,
           sets: item.sets
-            .filter((s) => s.reps || s.weightLb || s.durationSec)
+            .filter((s) => s.reps || s.weightLb || s.durationMin)
             .map((s) => ({
               reps: s.reps ? Number(s.reps) : undefined,
               weightLb: s.weightLb ? Number(s.weightLb) : undefined,
-              durationSec: s.durationSec ? Number(s.durationSec) : undefined,
+              durationMin: s.durationMin ? Number(s.durationMin) : undefined,
             })),
         }))
         .filter((item) => item.sets.length > 0),
@@ -357,7 +357,7 @@ export default function LogWorkout() {
                   <span>Set</span>
                   <span>Reps</span>
                   <span>Weight (lbs)</span>
-                  <span>Duration (s)</span>
+                  <span>Duration (min)</span>
                   <span></span>
                 </div>
                 {item.sets.map((set, setIndex) => (
@@ -385,10 +385,10 @@ export default function LogWorkout() {
                       className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                     <input
-                      inputMode="numeric"
-                      value={set.durationSec}
+                      inputMode="decimal"
+                      value={set.durationMin}
                       onChange={(e) =>
-                        updateSet(exIndex, setIndex, 'durationSec', e.target.value)
+                        updateSet(exIndex, setIndex, 'durationMin', e.target.value)
                       }
                       className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
@@ -510,7 +510,7 @@ function buildInitialItems(
         ? ex.sets.map((s) => ({
             reps: s.reps?.toString() ?? '',
             weightLb: s.weightLb?.toString() ?? '',
-            durationSec: s.durationSec?.toString() ?? '',
+            durationMin: s.durationMin?.toString() ?? '',
           }))
         : [emptySet()],
     }))
