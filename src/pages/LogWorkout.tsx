@@ -11,6 +11,7 @@ import {
 import Card from '../components/Card'
 import ExercisePicker from '../components/ExercisePicker'
 import type { Exercise } from '../types'
+import { parseTargetReps, parseTargetWeight } from '../utils/targetParsing'
 
 interface EditableSet {
   reps: string
@@ -21,12 +22,23 @@ interface EditableSet {
 interface EditableExercise {
   exerciseId: string
   sets: EditableSet[]
+  included: boolean
   targetReps?: string
   targetWeight?: string
 }
 
 function emptySet(): EditableSet {
   return { reps: '', weightLb: '', durationSec: '' }
+}
+
+function prefilledSet(targetReps?: string, targetWeight?: string): EditableSet {
+  const { reps, durationSec } = parseTargetReps(targetReps)
+  const weightLb = parseTargetWeight(targetWeight)
+  return {
+    reps: reps !== undefined ? String(reps) : '',
+    weightLb: weightLb !== undefined ? String(weightLb) : '',
+    durationSec: durationSec !== undefined ? String(durationSec) : '',
+  }
 }
 
 function todayStr(): string {
@@ -53,6 +65,7 @@ export default function LogWorkout() {
     buildInitialItems(existingLog, prefill, programs),
   )
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [confirmingSkips, setConfirmingSkips] = useState(false)
 
   const exerciseById = useMemo(
     () => new Map(exercises.map((e) => [e.id, e])),
@@ -60,12 +73,23 @@ export default function LogWorkout() {
   )
 
   function addExercise(exercise: Exercise) {
-    setItems((prev) => [...prev, { exerciseId: exercise.id, sets: [emptySet()] }])
+    setItems((prev) => [
+      ...prev,
+      { exerciseId: exercise.id, sets: [emptySet()], included: true },
+    ])
     setPickerOpen(false)
   }
 
   function removeExercise(index: number) {
     setItems((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function toggleIncluded(index: number) {
+    setItems((prev) =>
+      prev.map((item, i) =>
+        i === index ? { ...item, included: !item.included } : item,
+      ),
+    )
   }
 
   function addSet(index: number) {
@@ -106,7 +130,17 @@ export default function LogWorkout() {
     )
   }
 
-  function handleSave() {
+  const skippedItems = items.filter((item) => !item.included)
+
+  function handleSaveClick() {
+    if (skippedItems.length > 0) {
+      setConfirmingSkips(true)
+    } else {
+      saveWorkout()
+    }
+  }
+
+  function saveWorkout() {
     const payload = {
       date,
       name: name.trim() || 'Workout',
@@ -114,7 +148,7 @@ export default function LogWorkout() {
       programId: existingLog?.programId ?? prefill?.programId,
       programDayId: existingLog?.programDayId ?? prefill?.dayId,
       exercises: items
-        .filter((item) => item.sets.length > 0)
+        .filter((item) => item.included && item.sets.length > 0)
         .map((item) => ({
           exerciseId: item.exerciseId,
           sets: item.sets
@@ -176,26 +210,39 @@ export default function LogWorkout() {
           const exercise = exerciseById.get(item.exerciseId)
           return (
             <Card key={exIndex}>
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h3 className="font-medium text-white">
-                    {exercise?.name ?? 'Unknown exercise'}
-                  </h3>
-                  {(item.targetReps || item.targetWeight) && (
-                    <p className="text-xs text-emerald-400/80 mt-0.5">
-                      Target: {item.targetReps}
-                      {item.targetWeight ? ` · ${item.targetWeight}` : ''}
-                    </p>
-                  )}
-                </div>
+              <div className="flex items-start justify-between mb-2 gap-2">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={item.included}
+                    onChange={() => toggleIncluded(exIndex)}
+                    className="mt-1 accent-emerald-500 shrink-0"
+                  />
+                  <div>
+                    <h3 className="font-medium text-white">
+                      {exercise?.name ?? 'Unknown exercise'}
+                    </h3>
+                    {(item.targetReps || item.targetWeight) && (
+                      <p className="text-xs text-emerald-400/80 mt-0.5">
+                        Target: {item.targetReps}
+                        {item.targetWeight ? ` · ${item.targetWeight}` : ''}
+                      </p>
+                    )}
+                    {!item.included && (
+                      <p className="text-xs text-amber-400/80 mt-0.5">
+                        Won't be logged — machine unavailable
+                      </p>
+                    )}
+                  </div>
+                </label>
                 <button
                   onClick={() => removeExercise(exIndex)}
-                  className="text-xs text-gray-500 hover:text-red-400"
+                  className="text-xs text-gray-500 hover:text-red-400 shrink-0"
                 >
                   Remove
                 </button>
               </div>
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 ${item.included ? '' : 'opacity-40'}`}>
                 <div className="grid grid-cols-[2rem_1fr_1fr_1fr_2rem] gap-2 text-xs text-gray-500 px-1">
                   <span>Set</span>
                   <span>Reps</span>
@@ -275,7 +322,7 @@ export default function LogWorkout() {
 
       <div className="flex gap-3">
         <button
-          onClick={handleSave}
+          onClick={handleSaveClick}
           disabled={items.length === 0}
           className="px-4 py-2 rounded-md bg-emerald-500 text-black font-medium text-sm hover:bg-emerald-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
@@ -293,6 +340,47 @@ export default function LogWorkout() {
 
       {pickerOpen && (
         <ExercisePicker onPick={addExercise} onClose={() => setPickerOpen(false)} />
+      )}
+
+      {confirmingSkips && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-30 p-4"
+          onClick={() => setConfirmingSkips(false)}
+        >
+          <div
+            className="bg-[#151922] border border-white/10 rounded-xl w-full max-w-sm p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-white font-medium">Skip these exercises?</h2>
+            <p className="text-sm text-gray-400">
+              These won't be included when you save:
+            </p>
+            <ul className="text-sm text-gray-300 list-disc list-inside space-y-1">
+              {skippedItems.map((item, i) => (
+                <li key={i}>
+                  {exerciseById.get(item.exerciseId)?.name ?? 'Unknown exercise'}
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-3 justify-end pt-1">
+              <button
+                onClick={() => setConfirmingSkips(false)}
+                className="px-3 py-1.5 rounded-md border border-white/15 text-sm text-gray-300 hover:bg-white/5"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmingSkips(false)
+                  saveWorkout()
+                }}
+                className="px-3 py-1.5 rounded-md bg-emerald-500 text-black text-sm font-medium hover:bg-emerald-400"
+              >
+                Save Anyway
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -317,6 +405,7 @@ function buildInitialItems(
   if (existingLog) {
     return existingLog.exercises.map((ex) => ({
       exerciseId: ex.exerciseId,
+      included: true,
       sets: ex.sets.length
         ? ex.sets.map((s) => ({
             reps: s.reps?.toString() ?? '',
@@ -332,7 +421,10 @@ function buildInitialItems(
     if (day) {
       return day.exercises.map((pe) => ({
         exerciseId: pe.exerciseId,
-        sets: Array.from({ length: pe.targetSets || 1 }, () => emptySet()),
+        included: true,
+        sets: Array.from({ length: pe.targetSets || 1 }, () =>
+          prefilledSet(pe.targetReps, pe.targetWeight),
+        ),
         targetReps: pe.targetReps,
         targetWeight: pe.targetWeight,
       }))
