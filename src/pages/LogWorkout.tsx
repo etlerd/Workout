@@ -10,7 +10,7 @@ import {
 } from '../data/repo'
 import Card from '../components/Card'
 import ExercisePicker from '../components/ExercisePicker'
-import type { Exercise } from '../types'
+import type { Exercise, Program, ProgramDay, WorkoutLog } from '../types'
 import { parseTargetReps, parseTargetWeight } from '../utils/targetParsing'
 
 interface EditableSet {
@@ -45,6 +45,35 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+function itemsForDay(day: ProgramDay): EditableExercise[] {
+  return day.exercises.map((pe) => ({
+    exerciseId: pe.exerciseId,
+    included: false,
+    sets: Array.from({ length: pe.targetSets || 1 }, () =>
+      prefilledSet(pe.targetReps, pe.targetWeight),
+    ),
+    targetReps: pe.targetReps,
+    targetWeight: pe.targetWeight,
+  }))
+}
+
+function nameForDay(program: Program, day: ProgramDay): string {
+  return `${program.name} — ${day.name}`
+}
+
+function mostRecentLogSelection(logs: WorkoutLog[]): {
+  programId: string
+  dayId: string
+} {
+  const mostRecent = [...logs].sort((a, b) =>
+    a.createdAt < b.createdAt ? 1 : -1,
+  )[0]
+  return {
+    programId: mostRecent?.programId ?? '',
+    dayId: mostRecent?.programDayId ?? '',
+  }
+}
+
 export default function LogWorkout() {
   const { logId } = useParams<{ logId: string }>()
   const location = useLocation()
@@ -54,15 +83,33 @@ export default function LogWorkout() {
   const programs = usePrograms()
 
   const existingLog = logId ? logs.find((l) => l.id === logId) : undefined
-  const prefill = location.state as
+  const navPrefill = location.state as
     | { programId: string; dayId: string }
     | undefined
 
+  const [selectedProgramId, setSelectedProgramId] = useState<string>(
+    () =>
+      existingLog?.programId ??
+      navPrefill?.programId ??
+      mostRecentLogSelection(logs).programId,
+  )
+  const [selectedDayId, setSelectedDayId] = useState<string>(
+    () =>
+      existingLog?.programDayId ??
+      navPrefill?.dayId ??
+      mostRecentLogSelection(logs).dayId,
+  )
+
   const [date, setDate] = useState(existingLog?.date ?? todayStr())
-  const [name, setName] = useState(existingLog?.name ?? defaultName(prefill, programs))
+  const [name, setName] = useState(() => {
+    if (existingLog) return existingLog.name
+    const program = programs.find((p) => p.id === selectedProgramId)
+    const day = program?.days.find((d) => d.id === selectedDayId)
+    return program && day ? nameForDay(program, day) : ''
+  })
   const [notes, setNotes] = useState(existingLog?.notes ?? '')
   const [items, setItems] = useState<EditableExercise[]>(() =>
-    buildInitialItems(existingLog, prefill, programs),
+    buildInitialItems(existingLog, programs, selectedProgramId, selectedDayId),
   )
   const [pickerOpen, setPickerOpen] = useState(false)
   const [confirmingSkips, setConfirmingSkips] = useState(false)
@@ -71,6 +118,31 @@ export default function LogWorkout() {
     () => new Map(exercises.map((e) => [e.id, e])),
     [exercises],
   )
+
+  const selectedProgram = programs.find((p) => p.id === selectedProgramId)
+
+  function handleProgramChange(programId: string) {
+    setSelectedProgramId(programId)
+    const program = programs.find((p) => p.id === programId)
+    const day = program?.days[0]
+    setSelectedDayId(day?.id ?? '')
+    if (program && day) {
+      setItems(itemsForDay(day))
+      setName(nameForDay(program, day))
+    } else {
+      setItems([])
+      setName('')
+    }
+  }
+
+  function handleDayChange(dayId: string) {
+    setSelectedDayId(dayId)
+    const day = selectedProgram?.days.find((d) => d.id === dayId)
+    if (selectedProgram && day) {
+      setItems(itemsForDay(day))
+      setName(nameForDay(selectedProgram, day))
+    }
+  }
 
   function addExercise(exercise: Exercise) {
     setItems((prev) => [
@@ -145,8 +217,8 @@ export default function LogWorkout() {
       date,
       name: name.trim() || 'Workout',
       notes: notes.trim() || undefined,
-      programId: existingLog?.programId ?? prefill?.programId,
-      programDayId: existingLog?.programDayId ?? prefill?.dayId,
+      programId: existingLog?.programId ?? (selectedProgramId || undefined),
+      programDayId: existingLog?.programDayId ?? (selectedDayId || undefined),
       exercises: items
         .filter((item) => item.included && item.sets.length > 0)
         .map((item) => ({
@@ -182,6 +254,44 @@ export default function LogWorkout() {
       <h1 className="text-xl font-semibold text-white">
         {existingLog ? 'Edit Workout' : 'Log Workout'}
       </h1>
+
+      {!existingLog && (
+        <Card className="space-y-3">
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-sm text-gray-400 mb-1">Program</label>
+              <select
+                value={selectedProgramId}
+                onChange={(e) => handleProgramChange(e.target.value)}
+                className="w-full rounded-md bg-[#0b0d12] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              >
+                <option value="">Custom (no program)</option>
+                {programs.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedProgram && selectedProgram.days.length > 0 && (
+              <div className="flex-1">
+                <label className="block text-sm text-gray-400 mb-1">Day</label>
+                <select
+                  value={selectedDayId}
+                  onChange={(e) => handleDayChange(e.target.value)}
+                  className="w-full rounded-md bg-[#0b0d12] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+                  {selectedProgram.days.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       <Card className="space-y-3">
         <div className="flex gap-3">
@@ -386,21 +496,11 @@ export default function LogWorkout() {
   )
 }
 
-function defaultName(
-  prefill: { programId: string; dayId: string } | undefined,
-  programs: ReturnType<typeof usePrograms>,
-): string {
-  if (!prefill) return ''
-  const program = programs.find((p) => p.id === prefill.programId)
-  const day = program?.days.find((d) => d.id === prefill.dayId)
-  if (program && day) return `${program.name} — ${day.name}`
-  return ''
-}
-
 function buildInitialItems(
-  existingLog: ReturnType<typeof useLogs>[number] | undefined,
-  prefill: { programId: string; dayId: string } | undefined,
-  programs: ReturnType<typeof usePrograms>,
+  existingLog: WorkoutLog | undefined,
+  programs: Program[],
+  programId: string,
+  dayId: string,
 ): EditableExercise[] {
   if (existingLog) {
     return existingLog.exercises.map((ex) => ({
@@ -415,20 +515,7 @@ function buildInitialItems(
         : [emptySet()],
     }))
   }
-  if (prefill) {
-    const program = programs.find((p) => p.id === prefill.programId)
-    const day = program?.days.find((d) => d.id === prefill.dayId)
-    if (day) {
-      return day.exercises.map((pe) => ({
-        exerciseId: pe.exerciseId,
-        included: false,
-        sets: Array.from({ length: pe.targetSets || 1 }, () =>
-          prefilledSet(pe.targetReps, pe.targetWeight),
-        ),
-        targetReps: pe.targetReps,
-        targetWeight: pe.targetWeight,
-      }))
-    }
-  }
-  return []
+  const program = programs.find((p) => p.id === programId)
+  const day = program?.days.find((d) => d.id === dayId)
+  return day ? itemsForDay(day) : []
 }
