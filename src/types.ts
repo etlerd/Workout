@@ -31,7 +31,7 @@ export interface Exercise {
 export interface SetEntry {
   reps?: number
   weightLb?: number
-  durationSec?: number
+  durationMin?: number
 }
 
 export interface LoggedExercise {

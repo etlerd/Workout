@@ -10,7 +10,7 @@ function average(low: string, high: string | undefined): number {
 
 export interface ParsedTargetReps {
   reps?: number
-  durationSec?: number
+  durationMin?: number
 }
 
 export function parseTargetReps(target: string | undefined): ParsedTargetReps {
@@ -24,7 +24,7 @@ export function parseTargetReps(target: string | undefined): ParsedTargetReps {
 
   const minuteMatch = trimmed.match(MINUTE_RANGE)
   if (minuteMatch) {
-    return { durationSec: average(minuteMatch[1], minuteMatch[2]) * 60 }
+    return { durationMin: average(minuteMatch[1], minuteMatch[2]) }
   }
 
   return {}
