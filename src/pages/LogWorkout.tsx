@@ -217,7 +217,7 @@ export default function LogWorkout() {
                       onChange={(e) =>
                         updateSet(exIndex, setIndex, 'reps', e.target.value)
                       }
-                      className="rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                     <input
                       inputMode="decimal"
@@ -225,7 +225,7 @@ export default function LogWorkout() {
                       onChange={(e) =>
                         updateSet(exIndex, setIndex, 'weightLb', e.target.value)
                       }
-                      className="rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                     <input
                       inputMode="numeric"
@@ -233,7 +233,7 @@ export default function LogWorkout() {
                       onChange={(e) =>
                         updateSet(exIndex, setIndex, 'durationSec', e.target.value)
                       }
-                      className="rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                     <button
                       onClick={() => removeSet(exIndex, setIndex)}
