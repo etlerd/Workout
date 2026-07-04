@@ -76,4 +76,27 @@ export const seedPrograms: Program[] = [
       },
     ],
   },
+  {
+    id: 'machine-foundation-circuit',
+    name: 'Machine Circuit — Foundation Phase',
+    description:
+      'A full-body machine circuit for returning to training after deconditioning. Follow the 6/10 effort rule: after your working sets you should feel like you could have done about 5 more reps. These starting weights will likely feel light — that’s correct. Connective tissue (tendons, ligaments) adapts slower than muscle, so the first two weeks are investment, not achievement. All exercises are on Cybex machines except the recumbent bike.',
+    days: [
+      {
+        id: 'foundation-day-1',
+        name: 'Full Body Circuit',
+        exercises: [
+          { exerciseId: 'recumbent-bike', targetSets: 1, targetReps: '5-10 min warm-up', targetWeight: 'Resistance level 3-4' },
+          { exerciseId: 'leg-press', targetSets: 2, targetReps: '12', targetWeight: '70-90 lbs, high foot placement' },
+          { exerciseId: 'seated-row-machine', targetSets: 2, targetReps: '12', targetWeight: '40-50 lbs' },
+          { exerciseId: 'chest-press-machine', targetSets: 2, targetReps: '12', targetWeight: '30-40 lbs' },
+          { exerciseId: 'lat-pulldown', targetSets: 2, targetReps: '12', targetWeight: '40-50 lbs' },
+          { exerciseId: 'triceps-pushdown', targetSets: 2, targetReps: '12', targetWeight: '15-20 lbs' },
+          { exerciseId: 'cable-bicep-curl', targetSets: 2, targetReps: '12', targetWeight: '15-20 lbs' },
+          { exerciseId: 'hip-abductor-machine', targetSets: 2, targetReps: '12', targetWeight: '50-70 lbs, start low' },
+          { exerciseId: 'hip-adductor-machine', targetSets: 2, targetReps: '12', targetWeight: '50-70 lbs, start low' },
+        ],
+      },
+    ],
+  },
 ]

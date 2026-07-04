@@ -144,10 +144,19 @@ export default function ProgramEditor() {
             </div>
 
             <div className="space-y-2">
+              {day.exercises.length > 0 && (
+                <div className="grid grid-cols-[1fr_3.5rem_4rem_6rem_1.5rem] gap-2 text-xs text-gray-500 px-1">
+                  <span>Exercise</span>
+                  <span>Sets</span>
+                  <span>Reps</span>
+                  <span>Weight</span>
+                  <span></span>
+                </div>
+              )}
               {day.exercises.map((pe, exIndex) => (
                 <div
                   key={exIndex}
-                  className="grid grid-cols-[1fr_4rem_5rem_1.5rem] gap-2 items-center"
+                  className="grid grid-cols-[1fr_3.5rem_4rem_6rem_1.5rem] gap-2 items-center"
                 >
                   <span className="text-sm text-gray-300 truncate">
                     {exerciseById.get(pe.exerciseId)?.name ?? 'Unknown'}
@@ -176,6 +185,19 @@ export default function ProgramEditor() {
                       )
                     }
                     className="rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                  <input
+                    placeholder="e.g. 40-50 lbs"
+                    value={pe.targetWeight ?? ''}
+                    onChange={(e) =>
+                      updateProgramExercise(
+                        dayIndex,
+                        exIndex,
+                        'targetWeight',
+                        e.target.value,
+                      )
+                    }
+                    className="rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                   <button
                     onClick={() => removeExerciseFromDay(dayIndex, exIndex)}
