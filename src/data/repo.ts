@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { Exercise, Program, WorkoutLog } from '../types'
+import type { Exercise, Program, ProgramExercise, WorkoutLog } from '../types'
 import { loadList, newId, saveList } from './storage'
 import { seedExercises } from './seedExercises'
 import { seedPrograms } from './seedPrograms'
@@ -77,8 +77,10 @@ export function usePrograms(): Program[] {
   )
 }
 
-export function addWorkoutLog(log: Omit<WorkoutLog, 'id' | 'createdAt'>) {
-  logsCollection.add({ ...log, id: newId(), createdAt: new Date().toISOString() })
+export function addWorkoutLog(log: Omit<WorkoutLog, 'id' | 'createdAt'>): string {
+  const id = newId()
+  logsCollection.add({ ...log, id, createdAt: new Date().toISOString() })
+  return id
 }
 
 export function updateWorkoutLog(id: string, log: Omit<WorkoutLog, 'id' | 'createdAt'>) {
@@ -103,4 +105,25 @@ export function updateProgram(id: string, program: Omit<Program, 'id'>) {
 
 export function deleteProgram(id: string) {
   programsCollection.remove(id)
+}
+
+export function updateProgramExerciseTarget(
+  programId: string,
+  dayId: string,
+  exerciseId: string,
+  updates: Partial<Pick<ProgramExercise, 'targetSets' | 'targetReps' | 'targetWeight'>>,
+) {
+  programsCollection.update(programId, (program) => ({
+    ...program,
+    days: program.days.map((day) =>
+      day.id === dayId
+        ? {
+            ...day,
+            exercises: day.exercises.map((pe) =>
+              pe.exerciseId === exerciseId ? { ...pe, ...updates } : pe,
+            ),
+          }
+        : day,
+    ),
+  }))
 }

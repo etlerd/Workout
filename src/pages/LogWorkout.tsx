@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   addWorkoutLog,
   deleteWorkoutLog,
+  updateProgramExerciseTarget,
   updateWorkoutLog,
   useExercises,
   useLogs,
@@ -11,7 +12,15 @@ import {
 import Card from '../components/Card'
 import ExercisePicker from '../components/ExercisePicker'
 import EmojiConfetti from '../components/EmojiConfetti'
-import type { Exercise, Program, ProgramDay, WorkoutLog } from '../types'
+import type {
+  Exercise,
+  LoggedExercise,
+  Program,
+  ProgramDay,
+  ProgramExercise,
+  SetEntry,
+  WorkoutLog,
+} from '../types'
 import { parseTargetReps, parseTargetWeight } from '../utils/targetParsing'
 
 const CELEBRATION_DELAY_MS = 1400
@@ -25,7 +34,7 @@ interface EditableSet {
 interface EditableExercise {
   exerciseId: string
   sets: EditableSet[]
-  included: boolean
+  saved: boolean
   targetReps?: string
   targetWeight?: string
 }
@@ -44,6 +53,16 @@ function prefilledSet(targetReps?: string, targetWeight?: string): EditableSet {
   }
 }
 
+function setsFromLogged(sets: SetEntry[]): EditableSet[] {
+  return sets.length
+    ? sets.map((s) => ({
+        reps: s.reps?.toString() ?? '',
+        weightLb: s.weightLb?.toString() ?? '',
+        durationMin: s.durationMin?.toString() ?? '',
+      }))
+    : [emptySet()]
+}
+
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
 }
@@ -51,7 +70,7 @@ function todayStr(): string {
 function itemsForDay(day: ProgramDay): EditableExercise[] {
   return day.exercises.map((pe) => ({
     exerciseId: pe.exerciseId,
-    included: false,
+    saved: false,
     sets: Array.from({ length: pe.targetSets || 1 }, () =>
       prefilledSet(pe.targetReps, pe.targetWeight),
     ),
@@ -77,6 +96,27 @@ function mostRecentLogSelection(logs: WorkoutLog[]): {
   }
 }
 
+function formatValueRange(values: number[]): string {
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  return min === max ? String(min) : `${min}-${max}`
+}
+
+function deriveTargets(
+  sets: EditableSet[],
+): Partial<Pick<ProgramExercise, 'targetSets' | 'targetReps' | 'targetWeight'>> {
+  const repsValues = sets.map((s) => s.reps).filter(Boolean).map(Number)
+  const weightValues = sets.map((s) => s.weightLb).filter(Boolean).map(Number)
+  const updates: Partial<
+    Pick<ProgramExercise, 'targetSets' | 'targetReps' | 'targetWeight'>
+  > = { targetSets: sets.length }
+  if (repsValues.length > 0) updates.targetReps = formatValueRange(repsValues)
+  if (weightValues.length > 0) {
+    updates.targetWeight = `${formatValueRange(weightValues)} lbs`
+  }
+  return updates
+}
+
 export default function LogWorkout() {
   const { logId } = useParams<{ logId: string }>()
   const location = useLocation()
@@ -90,18 +130,16 @@ export default function LogWorkout() {
     | { programId: string; dayId: string }
     | undefined
 
-  const [selectedProgramId, setSelectedProgramId] = useState<string>(
-    () =>
-      existingLog?.programId ??
-      navPrefill?.programId ??
-      mostRecentLogSelection(logs).programId,
-  )
-  const [selectedDayId, setSelectedDayId] = useState<string>(
-    () =>
-      existingLog?.programDayId ??
-      navPrefill?.dayId ??
-      mostRecentLogSelection(logs).dayId,
-  )
+  const [selectedProgramId, setSelectedProgramId] = useState<string>(() => {
+    if (existingLog) return existingLog.programId ?? ''
+    if (navPrefill) return navPrefill.programId
+    return mostRecentLogSelection(logs).programId
+  })
+  const [selectedDayId, setSelectedDayId] = useState<string>(() => {
+    if (existingLog) return existingLog.programDayId ?? ''
+    if (navPrefill) return navPrefill.dayId
+    return mostRecentLogSelection(logs).dayId
+  })
 
   const [date, setDate] = useState(existingLog?.date ?? todayStr())
   const [name, setName] = useState(() => {
@@ -114,8 +152,13 @@ export default function LogWorkout() {
   const [items, setItems] = useState<EditableExercise[]>(() =>
     buildInitialItems(existingLog, programs, selectedProgramId, selectedDayId),
   )
+  const [logRecordId, setLogRecordId] = useState<string | undefined>(
+    existingLog?.id,
+  )
+  const persistedExercisesRef = useRef<LoggedExercise[]>(
+    existingLog?.exercises ?? [],
+  )
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [confirmingSkips, setConfirmingSkips] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
 
   const exerciseById = useMemo(
@@ -151,21 +194,82 @@ export default function LogWorkout() {
   function addExercise(exercise: Exercise) {
     setItems((prev) => [
       ...prev,
-      { exerciseId: exercise.id, sets: [emptySet()], included: false },
+      { exerciseId: exercise.id, sets: [emptySet()], saved: false },
     ])
     setPickerOpen(false)
   }
 
-  function removeExercise(index: number) {
-    setItems((prev) => prev.filter((_, i) => i !== index))
+  function persistExercises(nextExercises: LoggedExercise[]) {
+    persistedExercisesRef.current = nextExercises
+    const payload = {
+      date,
+      name: name.trim() || 'Workout',
+      notes: notes.trim() || undefined,
+      programId: selectedProgramId || undefined,
+      programDayId: selectedDayId || undefined,
+      exercises: nextExercises,
+    }
+    if (logRecordId) {
+      updateWorkoutLog(logRecordId, payload)
+    } else {
+      const newId = addWorkoutLog(payload)
+      setLogRecordId(newId)
+      navigate(`/log/${newId}`, { replace: true })
+    }
   }
 
-  function toggleIncluded(index: number) {
-    setItems((prev) =>
-      prev.map((item, i) =>
-        i === index ? { ...item, included: !item.included } : item,
+  function saveExerciseCard(index: number) {
+    const item = items[index]
+    const persistedSets: SetEntry[] = item.sets
+      .filter((s) => s.reps || s.weightLb || s.durationMin)
+      .map((s) => ({
+        reps: s.reps ? Number(s.reps) : undefined,
+        weightLb: s.weightLb ? Number(s.weightLb) : undefined,
+        durationMin: s.durationMin ? Number(s.durationMin) : undefined,
+      }))
+    if (persistedSets.length === 0) return
+
+    const nextExercises = [
+      ...persistedExercisesRef.current.filter(
+        (e) => e.exerciseId !== item.exerciseId,
       ),
+      { exerciseId: item.exerciseId, sets: persistedSets },
+    ]
+    persistExercises(nextExercises)
+
+    const day = selectedProgram?.days.find((d) => d.id === selectedDayId)
+    const isProgramExercise = day?.exercises.some(
+      (pe) => pe.exerciseId === item.exerciseId,
     )
+    if (selectedProgramId && selectedDayId && isProgramExercise) {
+      updateProgramExerciseTarget(
+        selectedProgramId,
+        selectedDayId,
+        item.exerciseId,
+        deriveTargets(item.sets),
+      )
+    }
+
+    setItems((prev) =>
+      prev.map((it, i) => (i === index ? { ...it, saved: true } : it)),
+    )
+  }
+
+  function editExercise(index: number) {
+    setItems((prev) =>
+      prev.map((it, i) => (i === index ? { ...it, saved: false } : it)),
+    )
+  }
+
+  function removeExercise(index: number) {
+    const item = items[index]
+    if (item.saved) {
+      const nextExercises = persistedExercisesRef.current.filter(
+        (e) => e.exerciseId !== item.exerciseId,
+      )
+      persistExercises(nextExercises)
+    }
+    setItems((prev) => prev.filter((_, i) => i !== index))
   }
 
   function addSet(index: number) {
@@ -206,61 +310,25 @@ export default function LogWorkout() {
     )
   }
 
-  const skippedItems = items.filter((item) => !item.included)
-
-  function handleSaveClick() {
-    if (skippedItems.length > 0) {
-      setConfirmingSkips(true)
-    } else {
-      saveWorkout()
-    }
-  }
-
-  function saveWorkout() {
-    const payload = {
-      date,
-      name: name.trim() || 'Workout',
-      notes: notes.trim() || undefined,
-      programId: existingLog?.programId ?? (selectedProgramId || undefined),
-      programDayId: existingLog?.programDayId ?? (selectedDayId || undefined),
-      exercises: items
-        .filter((item) => item.included && item.sets.length > 0)
-        .map((item) => ({
-          exerciseId: item.exerciseId,
-          sets: item.sets
-            .filter((s) => s.reps || s.weightLb || s.durationMin)
-            .map((s) => ({
-              reps: s.reps ? Number(s.reps) : undefined,
-              weightLb: s.weightLb ? Number(s.weightLb) : undefined,
-              durationMin: s.durationMin ? Number(s.durationMin) : undefined,
-            })),
-        }))
-        .filter((item) => item.sets.length > 0),
-    }
-
-    if (existingLog) {
-      updateWorkoutLog(existingLog.id, payload)
-    } else {
-      addWorkoutLog(payload)
-    }
+  function finishWorkout() {
+    if (!logRecordId) return
+    persistExercises(persistedExercisesRef.current)
     setShowCelebration(true)
     setTimeout(() => navigate('/history'), CELEBRATION_DELAY_MS)
   }
 
   function handleDelete() {
-    if (existingLog) {
-      deleteWorkoutLog(existingLog.id)
+    if (logRecordId) {
+      deleteWorkoutLog(logRecordId)
       navigate('/history')
     }
   }
 
   return (
     <div className="space-y-4 max-w-2xl">
-      <h1 className="text-xl font-semibold text-white">
-        {existingLog ? 'Edit Workout' : 'Log Workout'}
-      </h1>
+      <h1 className="text-xl font-semibold text-white">Log Workout</h1>
 
-      {!existingLog && (
+      {!logRecordId && (
         <Card className="space-y-3">
           <div className="flex gap-3">
             <div className="flex-1">
@@ -323,33 +391,26 @@ export default function LogWorkout() {
       <div className="space-y-3">
         {items.map((item, exIndex) => {
           const exercise = exerciseById.get(item.exerciseId)
+          const hasData = item.sets.some(
+            (s) => s.reps || s.weightLb || s.durationMin,
+          )
           return (
-            <Card key={exIndex}>
+            <Card
+              key={exIndex}
+              className={item.saved ? 'opacity-60' : undefined}
+            >
               <div className="flex items-start justify-between mb-2 gap-2">
-                <label className="flex items-start gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={item.included}
-                    onChange={() => toggleIncluded(exIndex)}
-                    className="mt-1 accent-emerald-500 shrink-0"
-                  />
-                  <div>
-                    <h3 className="font-medium text-white">
-                      {exercise?.name ?? 'Unknown exercise'}
-                    </h3>
-                    {(item.targetReps || item.targetWeight) && (
-                      <p className="text-xs text-emerald-400/80 mt-0.5">
-                        Target: {item.targetReps}
-                        {item.targetWeight ? ` · ${item.targetWeight}` : ''}
-                      </p>
-                    )}
-                    {!item.included && (
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Not logged — check off if you did this one
-                      </p>
-                    )}
-                  </div>
-                </label>
+                <div>
+                  <h3 className="font-medium text-white">
+                    {exercise?.name ?? 'Unknown exercise'}
+                  </h3>
+                  {(item.targetReps || item.targetWeight) && (
+                    <p className="text-xs text-emerald-400/80 mt-0.5">
+                      Target: {item.targetReps}
+                      {item.targetWeight ? ` · ${item.targetWeight}` : ''}
+                    </p>
+                  )}
+                </div>
                 <button
                   onClick={() => removeExercise(exIndex)}
                   className="text-xs text-gray-500 hover:text-red-400 shrink-0"
@@ -357,7 +418,7 @@ export default function LogWorkout() {
                   Remove
                 </button>
               </div>
-              <div className={`space-y-1.5 ${item.included ? '' : 'opacity-40'}`}>
+              <div className="space-y-1.5">
                 <div className="grid grid-cols-[2rem_1fr_1fr_1fr_2rem] gap-2 text-xs text-gray-500 px-1">
                   <span>Set</span>
                   <span>Reps</span>
@@ -375,44 +436,71 @@ export default function LogWorkout() {
                     </span>
                     <input
                       inputMode="numeric"
+                      disabled={item.saved}
                       value={set.reps}
                       onChange={(e) =>
                         updateSet(exIndex, setIndex, 'reps', e.target.value)
                       }
-                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
                     />
                     <input
                       inputMode="decimal"
+                      disabled={item.saved}
                       value={set.weightLb}
                       onChange={(e) =>
                         updateSet(exIndex, setIndex, 'weightLb', e.target.value)
                       }
-                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
                     />
                     <input
                       inputMode="decimal"
+                      disabled={item.saved}
                       value={set.durationMin}
                       onChange={(e) =>
                         updateSet(exIndex, setIndex, 'durationMin', e.target.value)
                       }
-                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
                     />
-                    <button
-                      onClick={() => removeSet(exIndex, setIndex)}
-                      className="text-gray-500 hover:text-red-400 text-sm"
-                      aria-label="Remove set"
-                    >
-                      ✕
-                    </button>
+                    {!item.saved && (
+                      <button
+                        onClick={() => removeSet(exIndex, setIndex)}
+                        className="text-gray-500 hover:text-red-400 text-sm"
+                        aria-label="Remove set"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
-              <button
-                onClick={() => addSet(exIndex)}
-                className="mt-2 text-xs font-medium text-emerald-400 hover:text-emerald-300"
-              >
-                + Add Set
-              </button>
+
+              {item.saved ? (
+                <p className="mt-3 text-xs text-emerald-400 flex items-center gap-2">
+                  ✓ Saved
+                  <button
+                    onClick={() => editExercise(exIndex)}
+                    className="text-gray-400 hover:text-white underline"
+                  >
+                    Edit
+                  </button>
+                </p>
+              ) : (
+                <>
+                  <button
+                    onClick={() => addSet(exIndex)}
+                    className="mt-2 text-xs font-medium text-emerald-400 hover:text-emerald-300"
+                  >
+                    + Add Set
+                  </button>
+                  <button
+                    onClick={() => saveExerciseCard(exIndex)}
+                    disabled={!hasData}
+                    className="mt-3 w-full py-2 rounded-md bg-emerald-500 text-black font-medium text-sm hover:bg-emerald-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Save Exercise
+                  </button>
+                </>
+              )}
             </Card>
           )
         })}
@@ -437,13 +525,13 @@ export default function LogWorkout() {
 
       <div className="flex gap-3">
         <button
-          onClick={handleSaveClick}
-          disabled={items.length === 0 || showCelebration}
+          onClick={finishWorkout}
+          disabled={!logRecordId || showCelebration}
           className="px-4 py-2 rounded-md bg-emerald-500 text-black font-medium text-sm hover:bg-emerald-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {showCelebration ? 'Saved!' : 'Save Workout'}
+          {showCelebration ? 'Saved!' : 'Finish Workout'}
         </button>
-        {existingLog && (
+        {logRecordId && (
           <button
             onClick={handleDelete}
             className="px-4 py-2 rounded-md border border-red-500/30 text-red-400 font-medium text-sm hover:bg-red-500/10 transition-colors"
@@ -452,53 +540,17 @@ export default function LogWorkout() {
           </button>
         )}
       </div>
+      {!logRecordId && (
+        <p className="text-xs text-gray-500">
+          Save at least one exercise above to finish this workout.
+        </p>
+      )}
 
       {pickerOpen && (
         <ExercisePicker onPick={addExercise} onClose={() => setPickerOpen(false)} />
       )}
 
       {showCelebration && <EmojiConfetti />}
-
-      {confirmingSkips && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-30 p-4"
-          onClick={() => setConfirmingSkips(false)}
-        >
-          <div
-            className="bg-[#151922] border border-white/10 rounded-xl w-full max-w-sm p-5 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-white font-medium">Skip these exercises?</h2>
-            <p className="text-sm text-gray-400">
-              These won't be included when you save:
-            </p>
-            <ul className="text-sm text-gray-300 list-disc list-inside space-y-1">
-              {skippedItems.map((item, i) => (
-                <li key={i}>
-                  {exerciseById.get(item.exerciseId)?.name ?? 'Unknown exercise'}
-                </li>
-              ))}
-            </ul>
-            <div className="flex gap-3 justify-end pt-1">
-              <button
-                onClick={() => setConfirmingSkips(false)}
-                className="px-3 py-1.5 rounded-md border border-white/15 text-sm text-gray-300 hover:bg-white/5"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setConfirmingSkips(false)
-                  saveWorkout()
-                }}
-                className="px-3 py-1.5 rounded-md bg-emerald-500 text-black text-sm font-medium hover:bg-emerald-400"
-              >
-                Save Anyway
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -509,20 +561,31 @@ function buildInitialItems(
   programId: string,
   dayId: string,
 ): EditableExercise[] {
-  if (existingLog) {
-    return existingLog.exercises.map((ex) => ({
-      exerciseId: ex.exerciseId,
-      included: true,
-      sets: ex.sets.length
-        ? ex.sets.map((s) => ({
-            reps: s.reps?.toString() ?? '',
-            weightLb: s.weightLb?.toString() ?? '',
-            durationMin: s.durationMin?.toString() ?? '',
-          }))
-        : [emptySet()],
-    }))
-  }
   const program = programs.find((p) => p.id === programId)
   const day = program?.days.find((d) => d.id === dayId)
-  return day ? itemsForDay(day) : []
+  const templateItems = day ? itemsForDay(day) : []
+
+  if (!existingLog) return templateItems
+
+  const loggedByExerciseId = new Map(
+    existingLog.exercises.map((e) => [e.exerciseId, e]),
+  )
+
+  const overlaid = templateItems.map((item) => {
+    const logged = loggedByExerciseId.get(item.exerciseId)
+    return logged
+      ? { ...item, saved: true, sets: setsFromLogged(logged.sets) }
+      : item
+  })
+
+  const templateIds = new Set(templateItems.map((i) => i.exerciseId))
+  const extras: EditableExercise[] = existingLog.exercises
+    .filter((e) => !templateIds.has(e.exerciseId))
+    .map((e) => ({
+      exerciseId: e.exerciseId,
+      saved: true,
+      sets: setsFromLogged(e.sets),
+    }))
+
+  return [...overlaid, ...extras]
 }
