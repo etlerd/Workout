@@ -34,6 +34,8 @@ export default function Progress() {
   const selected = loggedExercises.find((e) => e.id === exerciseId)
   const history = exerciseId ? exerciseHistory(logs, exerciseId) : []
   const durationBased = isDurationBased(history)
+  const hasDistanceData = history.some((h) => h.distanceMi > 0)
+  const hasLevelData = history.some((h) => h.maxLevel > 0)
 
   const chartData = history.map((h) => ({
     date: new Date(h.date).toLocaleDateString(undefined, {
@@ -43,6 +45,7 @@ export default function Progress() {
     weight: h.maxWeightLb,
     volume: h.volume,
     duration: h.durationMin,
+    distance: h.distanceMi,
   }))
 
   return (
@@ -96,6 +99,26 @@ export default function Progress() {
                         {history[history.length - 1]?.durationMin} min
                       </p>
                     </Card>
+                    {hasDistanceData && (
+                      <Card>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide">
+                          Best Distance
+                        </p>
+                        <p className="text-xl text-white font-semibold mt-1">
+                          {Math.max(...history.map((h) => h.distanceMi))} mi
+                        </p>
+                      </Card>
+                    )}
+                    {hasLevelData && (
+                      <Card>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide">
+                          Latest Level
+                        </p>
+                        <p className="text-xl text-white font-semibold mt-1">
+                          {history[history.length - 1]?.maxLevel}
+                        </p>
+                      </Card>
+                    )}
                   </>
                 ) : (
                   <>
@@ -159,7 +182,43 @@ export default function Progress() {
                     </ResponsiveContainer>
                   </div>
                 </Card>
-              ) : (
+              ) : null}
+
+              {durationBased && hasDistanceData && (
+                <Card>
+                  <h2 className="text-sm font-medium text-gray-300 mb-3">
+                    Distance Over Time
+                  </h2>
+                  <div style={{ width: '100%', height: 260 }}>
+                    <ResponsiveContainer>
+                      <LineChart data={chartData} margin={{ left: -10 }}>
+                        <CartesianGrid stroke={GRID} strokeDasharray="3 3" />
+                        <XAxis dataKey="date" stroke={AXIS} fontSize={12} />
+                        <YAxis stroke={AXIS} fontSize={12} />
+                        <Tooltip
+                          contentStyle={{
+                            background: '#151922',
+                            border: '1px solid #2a2f3a',
+                            borderRadius: 8,
+                            fontSize: 13,
+                          }}
+                          labelStyle={{ color: '#e5e7eb' }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="distance"
+                          stroke="#38bdf8"
+                          strokeWidth={2}
+                          dot={{ r: 3, fill: '#38bdf8' }}
+                          name="Distance (mi)"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+              )}
+
+              {!durationBased && (
                 <>
                   <Card>
                     <h2 className="text-sm font-medium text-gray-300 mb-3">

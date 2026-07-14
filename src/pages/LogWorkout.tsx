@@ -21,7 +21,11 @@ import type {
   SetEntry,
   WorkoutLog,
 } from '../types'
-import { parseTargetReps, parseTargetWeight } from '../utils/targetParsing'
+import {
+  parseTargetLevel,
+  parseTargetReps,
+  parseTargetWeight,
+} from '../utils/targetParsing'
 
 const CELEBRATION_DELAY_MS = 1400
 
@@ -29,6 +33,8 @@ interface EditableSet {
   reps: string
   weightLb: string
   durationMin: string
+  level: string
+  distanceMi: string
 }
 
 interface EditableExercise {
@@ -40,16 +46,19 @@ interface EditableExercise {
 }
 
 function emptySet(): EditableSet {
-  return { reps: '', weightLb: '', durationMin: '' }
+  return { reps: '', weightLb: '', durationMin: '', level: '', distanceMi: '' }
 }
 
 function prefilledSet(targetReps?: string, targetWeight?: string): EditableSet {
   const { reps, durationMin } = parseTargetReps(targetReps)
   const weightLb = parseTargetWeight(targetWeight)
+  const level = parseTargetLevel(targetWeight)
   return {
     reps: reps !== undefined ? String(reps) : '',
     weightLb: weightLb !== undefined ? String(weightLb) : '',
     durationMin: durationMin !== undefined ? String(durationMin) : '',
+    level: level !== undefined ? String(level) : '',
+    distanceMi: '',
   }
 }
 
@@ -59,6 +68,8 @@ function setsFromLogged(sets: SetEntry[]): EditableSet[] {
         reps: s.reps?.toString() ?? '',
         weightLb: s.weightLb?.toString() ?? '',
         durationMin: s.durationMin?.toString() ?? '',
+        level: s.level?.toString() ?? '',
+        distanceMi: s.distanceMi?.toString() ?? '',
       }))
     : [emptySet()]
 }
@@ -107,12 +118,15 @@ function deriveTargets(
 ): Partial<Pick<ProgramExercise, 'targetSets' | 'targetReps' | 'targetWeight'>> {
   const repsValues = sets.map((s) => s.reps).filter(Boolean).map(Number)
   const weightValues = sets.map((s) => s.weightLb).filter(Boolean).map(Number)
+  const levelValues = sets.map((s) => s.level).filter(Boolean).map(Number)
   const updates: Partial<
     Pick<ProgramExercise, 'targetSets' | 'targetReps' | 'targetWeight'>
   > = { targetSets: sets.length }
   if (repsValues.length > 0) updates.targetReps = formatValueRange(repsValues)
   if (weightValues.length > 0) {
     updates.targetWeight = `${formatValueRange(weightValues)} lbs`
+  } else if (levelValues.length > 0) {
+    updates.targetWeight = `Resistance level ${formatValueRange(levelValues)}`
   }
   return updates
 }
@@ -221,11 +235,15 @@ export default function LogWorkout() {
   function saveExerciseCard(index: number) {
     const item = items[index]
     const persistedSets: SetEntry[] = item.sets
-      .filter((s) => s.reps || s.weightLb || s.durationMin)
+      .filter(
+        (s) => s.reps || s.weightLb || s.durationMin || s.level || s.distanceMi,
+      )
       .map((s) => ({
         reps: s.reps ? Number(s.reps) : undefined,
         weightLb: s.weightLb ? Number(s.weightLb) : undefined,
         durationMin: s.durationMin ? Number(s.durationMin) : undefined,
+        level: s.level ? Number(s.level) : undefined,
+        distanceMi: s.distanceMi ? Number(s.distanceMi) : undefined,
       }))
     if (persistedSets.length === 0) return
 
@@ -392,8 +410,9 @@ export default function LogWorkout() {
         {items.map((item, exIndex) => {
           const exercise = exerciseById.get(item.exerciseId)
           const hasData = item.sets.some(
-            (s) => s.reps || s.weightLb || s.durationMin,
+            (s) => s.reps || s.weightLb || s.durationMin || s.level || s.distanceMi,
           )
+          const isCardio = exercise?.category === 'Cardio'
           return (
             <Card
               key={exIndex}
@@ -421,9 +440,19 @@ export default function LogWorkout() {
               <div className="space-y-1.5">
                 <div className="grid grid-cols-[2rem_1fr_1fr_1fr_2rem] gap-2 text-xs text-gray-500 px-1">
                   <span>Set</span>
-                  <span>Reps</span>
-                  <span>Weight (lbs)</span>
-                  <span>Duration (min)</span>
+                  {isCardio ? (
+                    <>
+                      <span>Duration (min)</span>
+                      <span>Level</span>
+                      <span>Distance (mi)</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Reps</span>
+                      <span>Weight (lbs)</span>
+                      <span>Duration (min)</span>
+                    </>
+                  )}
                   <span></span>
                 </div>
                 {item.sets.map((set, setIndex) => (
@@ -434,33 +463,67 @@ export default function LogWorkout() {
                     <span className="text-sm text-gray-400 text-center">
                       {setIndex + 1}
                     </span>
-                    <input
-                      inputMode="numeric"
-                      disabled={item.saved}
-                      value={set.reps}
-                      onChange={(e) =>
-                        updateSet(exIndex, setIndex, 'reps', e.target.value)
-                      }
-                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
-                    />
-                    <input
-                      inputMode="decimal"
-                      disabled={item.saved}
-                      value={set.weightLb}
-                      onChange={(e) =>
-                        updateSet(exIndex, setIndex, 'weightLb', e.target.value)
-                      }
-                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
-                    />
-                    <input
-                      inputMode="decimal"
-                      disabled={item.saved}
-                      value={set.durationMin}
-                      onChange={(e) =>
-                        updateSet(exIndex, setIndex, 'durationMin', e.target.value)
-                      }
-                      className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
-                    />
+                    {isCardio ? (
+                      <>
+                        <input
+                          inputMode="decimal"
+                          disabled={item.saved}
+                          value={set.durationMin}
+                          onChange={(e) =>
+                            updateSet(exIndex, setIndex, 'durationMin', e.target.value)
+                          }
+                          className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
+                        />
+                        <input
+                          inputMode="numeric"
+                          disabled={item.saved}
+                          value={set.level}
+                          onChange={(e) =>
+                            updateSet(exIndex, setIndex, 'level', e.target.value)
+                          }
+                          className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
+                        />
+                        <input
+                          inputMode="decimal"
+                          disabled={item.saved}
+                          value={set.distanceMi}
+                          onChange={(e) =>
+                            updateSet(exIndex, setIndex, 'distanceMi', e.target.value)
+                          }
+                          className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          inputMode="numeric"
+                          disabled={item.saved}
+                          value={set.reps}
+                          onChange={(e) =>
+                            updateSet(exIndex, setIndex, 'reps', e.target.value)
+                          }
+                          className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
+                        />
+                        <input
+                          inputMode="decimal"
+                          disabled={item.saved}
+                          value={set.weightLb}
+                          onChange={(e) =>
+                            updateSet(exIndex, setIndex, 'weightLb', e.target.value)
+                          }
+                          className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
+                        />
+                        <input
+                          inputMode="decimal"
+                          disabled={item.saved}
+                          value={set.durationMin}
+                          onChange={(e) =>
+                            updateSet(exIndex, setIndex, 'durationMin', e.target.value)
+                          }
+                          className="w-full min-w-0 rounded-md bg-[#0b0d12] border border-white/10 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
+                        />
+                      </>
+                    )}
                     {!item.saved && (
                       <button
                         onClick={() => removeSet(exIndex, setIndex)}

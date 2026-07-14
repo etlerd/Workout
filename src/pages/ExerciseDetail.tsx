@@ -5,6 +5,7 @@ import Card from '../components/Card'
 import Badge from '../components/Badge'
 import type { Equipment, MuscleGroup } from '../types'
 import {
+  bestDistance,
   exerciseHistory,
   isDurationBased,
   longestDuration,
@@ -55,6 +56,13 @@ function ExerciseView({ id }: { id: string }) {
   const durationBased = isDurationBased(history)
   const best = durationBased ? undefined : personalBest(logs, id)
   const bestDuration = durationBased ? longestDuration(logs, id) : undefined
+  const bestDistanceCandidate = durationBased
+    ? bestDistance(logs, id)
+    : undefined
+  const bestDistancePoint =
+    bestDistanceCandidate && bestDistanceCandidate.distanceMi > 0
+      ? bestDistanceCandidate
+      : undefined
 
   return (
     <div className="space-y-4 max-w-2xl">
@@ -94,6 +102,20 @@ function ExerciseView({ id }: { id: string }) {
             {new Date(bestDuration.date).toLocaleDateString()} · logged{' '}
             {history.length} time
             {history.length === 1 ? '' : 's'}
+          </p>
+        </Card>
+      )}
+
+      {bestDistancePoint && (
+        <Card>
+          <p className="text-xs text-gray-400 uppercase tracking-wide">
+            Best Distance
+          </p>
+          <p className="text-lg text-white font-medium mt-1">
+            {bestDistancePoint.distanceMi} mi
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {new Date(bestDistancePoint.date).toLocaleDateString()}
           </p>
         </Card>
       )}

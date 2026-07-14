@@ -30,10 +30,21 @@ export function parseTargetReps(target: string | undefined): ParsedTargetReps {
   return {}
 }
 
-export function parseTargetWeight(target: string | undefined): number | undefined {
-  if (!target) return undefined
+function isResistanceLevelText(target: string): boolean {
   const lower = target.toLowerCase()
-  if (lower.includes('resistance') || lower.includes('level')) return undefined
+  return lower.includes('resistance') || lower.includes('level')
+}
+
+export function parseTargetWeight(target: string | undefined): number | undefined {
+  if (!target || isResistanceLevelText(target)) return undefined
+
+  const match = target.match(ANY_NUMBER_RANGE)
+  if (!match) return undefined
+  return average(match[1], match[2])
+}
+
+export function parseTargetLevel(target: string | undefined): number | undefined {
+  if (!target || !isResistanceLevelText(target)) return undefined
 
   const match = target.match(ANY_NUMBER_RANGE)
   if (!match) return undefined
