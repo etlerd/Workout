@@ -30,6 +30,8 @@ export interface ExerciseHistoryPoint {
   volume: number
   bestSetReps: number
   durationMin: number
+  maxLevel: number
+  distanceMi: number
 }
 
 export function exerciseHistory(
@@ -44,15 +46,27 @@ export function exerciseHistory(
     let bestSetReps = 0
     let volume = 0
     let durationMin = 0
+    let maxLevel = 0
+    let distanceMi = 0
     for (const set of entry.sets) {
       volume += setVolume(set.reps, set.weightLb)
       durationMin += set.durationMin ?? 0
+      distanceMi += set.distanceMi ?? 0
+      if ((set.level ?? 0) > maxLevel) maxLevel = set.level ?? 0
       if ((set.weightLb ?? 0) > maxWeightLb) {
         maxWeightLb = set.weightLb ?? 0
         bestSetReps = set.reps ?? 0
       }
     }
-    points.push({ date: log.date, maxWeightLb, volume, bestSetReps, durationMin })
+    points.push({
+      date: log.date,
+      maxWeightLb,
+      volume,
+      bestSetReps,
+      durationMin,
+      maxLevel,
+      distanceMi,
+    })
   }
   return points
 }
@@ -76,6 +90,17 @@ export function longestDuration(
   if (history.length === 0) return undefined
   return history.reduce((best, p) =>
     p.durationMin > best.durationMin ? p : best,
+  )
+}
+
+export function bestDistance(
+  logs: WorkoutLog[],
+  exerciseId: string,
+): ExerciseHistoryPoint | undefined {
+  const history = exerciseHistory(logs, exerciseId)
+  if (history.length === 0) return undefined
+  return history.reduce((best, p) =>
+    p.distanceMi > best.distanceMi ? p : best,
   )
 }
 
