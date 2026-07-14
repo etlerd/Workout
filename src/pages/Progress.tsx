@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import { useExercises, useLogs } from '../data/repo'
 import Card from '../components/Card'
-import { exerciseHistory } from '../utils/stats'
+import { exerciseHistory, isDurationBased } from '../utils/stats'
 
 const ACCENT = '#34d399'
 const GRID = '#2a2f3a'
@@ -33,6 +33,7 @@ export default function Progress() {
   const [exerciseId, setExerciseId] = useState(loggedExercises[0]?.id ?? '')
   const selected = loggedExercises.find((e) => e.id === exerciseId)
   const history = exerciseId ? exerciseHistory(logs, exerciseId) : []
+  const durationBased = isDurationBased(history)
 
   const chartData = history.map((h) => ({
     date: new Date(h.date).toLocaleDateString(undefined, {
@@ -41,6 +42,7 @@ export default function Progress() {
     }),
     weight: h.maxWeightLb,
     volume: h.volume,
+    duration: h.durationMin,
   }))
 
   return (
@@ -68,95 +70,162 @@ export default function Progress() {
           {selected && history.length > 0 && (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <Card>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    Best Weight
-                  </p>
-                  <p className="text-xl text-white font-semibold mt-1">
-                    {Math.max(...history.map((h) => h.maxWeightLb))} lbs
-                  </p>
-                </Card>
-                <Card>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    Sessions
-                  </p>
-                  <p className="text-xl text-white font-semibold mt-1">
-                    {history.length}
-                  </p>
-                </Card>
-                <Card>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    Latest Volume
-                  </p>
-                  <p className="text-xl text-white font-semibold mt-1">
-                    {history[history.length - 1]?.volume.toLocaleString()} lbs
-                  </p>
-                </Card>
+                {durationBased ? (
+                  <>
+                    <Card>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide">
+                        Longest Session
+                      </p>
+                      <p className="text-xl text-white font-semibold mt-1">
+                        {Math.max(...history.map((h) => h.durationMin))} min
+                      </p>
+                    </Card>
+                    <Card>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide">
+                        Sessions
+                      </p>
+                      <p className="text-xl text-white font-semibold mt-1">
+                        {history.length}
+                      </p>
+                    </Card>
+                    <Card>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide">
+                        Latest Duration
+                      </p>
+                      <p className="text-xl text-white font-semibold mt-1">
+                        {history[history.length - 1]?.durationMin} min
+                      </p>
+                    </Card>
+                  </>
+                ) : (
+                  <>
+                    <Card>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide">
+                        Best Weight
+                      </p>
+                      <p className="text-xl text-white font-semibold mt-1">
+                        {Math.max(...history.map((h) => h.maxWeightLb))} lbs
+                      </p>
+                    </Card>
+                    <Card>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide">
+                        Sessions
+                      </p>
+                      <p className="text-xl text-white font-semibold mt-1">
+                        {history.length}
+                      </p>
+                    </Card>
+                    <Card>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide">
+                        Latest Volume
+                      </p>
+                      <p className="text-xl text-white font-semibold mt-1">
+                        {history[history.length - 1]?.volume.toLocaleString()} lbs
+                      </p>
+                    </Card>
+                  </>
+                )}
               </div>
 
-              <Card>
-                <h2 className="text-sm font-medium text-gray-300 mb-3">
-                  Max Weight Over Time
-                </h2>
-                <div style={{ width: '100%', height: 260 }}>
-                  <ResponsiveContainer>
-                    <LineChart data={chartData} margin={{ left: -10 }}>
-                      <CartesianGrid stroke={GRID} strokeDasharray="3 3" />
-                      <XAxis dataKey="date" stroke={AXIS} fontSize={12} />
-                      <YAxis stroke={AXIS} fontSize={12} />
-                      <Tooltip
-                        contentStyle={{
-                          background: '#151922',
-                          border: '1px solid #2a2f3a',
-                          borderRadius: 8,
-                          fontSize: 13,
-                        }}
-                        labelStyle={{ color: '#e5e7eb' }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="weight"
-                        stroke={ACCENT}
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: ACCENT }}
-                        name="Max weight (lbs)"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </Card>
+              {durationBased ? (
+                <Card>
+                  <h2 className="text-sm font-medium text-gray-300 mb-3">
+                    Duration Over Time
+                  </h2>
+                  <div style={{ width: '100%', height: 260 }}>
+                    <ResponsiveContainer>
+                      <LineChart data={chartData} margin={{ left: -10 }}>
+                        <CartesianGrid stroke={GRID} strokeDasharray="3 3" />
+                        <XAxis dataKey="date" stroke={AXIS} fontSize={12} />
+                        <YAxis stroke={AXIS} fontSize={12} />
+                        <Tooltip
+                          contentStyle={{
+                            background: '#151922',
+                            border: '1px solid #2a2f3a',
+                            borderRadius: 8,
+                            fontSize: 13,
+                          }}
+                          labelStyle={{ color: '#e5e7eb' }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="duration"
+                          stroke={ACCENT}
+                          strokeWidth={2}
+                          dot={{ r: 3, fill: ACCENT }}
+                          name="Duration (min)"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+              ) : (
+                <>
+                  <Card>
+                    <h2 className="text-sm font-medium text-gray-300 mb-3">
+                      Max Weight Over Time
+                    </h2>
+                    <div style={{ width: '100%', height: 260 }}>
+                      <ResponsiveContainer>
+                        <LineChart data={chartData} margin={{ left: -10 }}>
+                          <CartesianGrid stroke={GRID} strokeDasharray="3 3" />
+                          <XAxis dataKey="date" stroke={AXIS} fontSize={12} />
+                          <YAxis stroke={AXIS} fontSize={12} />
+                          <Tooltip
+                            contentStyle={{
+                              background: '#151922',
+                              border: '1px solid #2a2f3a',
+                              borderRadius: 8,
+                              fontSize: 13,
+                            }}
+                            labelStyle={{ color: '#e5e7eb' }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="weight"
+                            stroke={ACCENT}
+                            strokeWidth={2}
+                            dot={{ r: 3, fill: ACCENT }}
+                            name="Max weight (lbs)"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
 
-              <Card>
-                <h2 className="text-sm font-medium text-gray-300 mb-3">
-                  Volume Over Time
-                </h2>
-                <div style={{ width: '100%', height: 260 }}>
-                  <ResponsiveContainer>
-                    <LineChart data={chartData} margin={{ left: -10 }}>
-                      <CartesianGrid stroke={GRID} strokeDasharray="3 3" />
-                      <XAxis dataKey="date" stroke={AXIS} fontSize={12} />
-                      <YAxis stroke={AXIS} fontSize={12} />
-                      <Tooltip
-                        contentStyle={{
-                          background: '#151922',
-                          border: '1px solid #2a2f3a',
-                          borderRadius: 8,
-                          fontSize: 13,
-                        }}
-                        labelStyle={{ color: '#e5e7eb' }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="volume"
-                        stroke="#38bdf8"
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: '#38bdf8' }}
-                        name="Volume (lbs)"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </Card>
+                  <Card>
+                    <h2 className="text-sm font-medium text-gray-300 mb-3">
+                      Volume Over Time
+                    </h2>
+                    <div style={{ width: '100%', height: 260 }}>
+                      <ResponsiveContainer>
+                        <LineChart data={chartData} margin={{ left: -10 }}>
+                          <CartesianGrid stroke={GRID} strokeDasharray="3 3" />
+                          <XAxis dataKey="date" stroke={AXIS} fontSize={12} />
+                          <YAxis stroke={AXIS} fontSize={12} />
+                          <Tooltip
+                            contentStyle={{
+                              background: '#151922',
+                              border: '1px solid #2a2f3a',
+                              borderRadius: 8,
+                              fontSize: 13,
+                            }}
+                            labelStyle={{ color: '#e5e7eb' }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="volume"
+                            stroke="#38bdf8"
+                            strokeWidth={2}
+                            dot={{ r: 3, fill: '#38bdf8' }}
+                            name="Volume (lbs)"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                </>
+              )}
             </>
           )}
         </>
