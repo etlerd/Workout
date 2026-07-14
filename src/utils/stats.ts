@@ -29,6 +29,7 @@ export interface ExerciseHistoryPoint {
   maxWeightLb: number
   volume: number
   bestSetReps: number
+  durationMin: number
 }
 
 export function exerciseHistory(
@@ -42,14 +43,16 @@ export function exerciseHistory(
     let maxWeightLb = 0
     let bestSetReps = 0
     let volume = 0
+    let durationMin = 0
     for (const set of entry.sets) {
       volume += setVolume(set.reps, set.weightLb)
+      durationMin += set.durationMin ?? 0
       if ((set.weightLb ?? 0) > maxWeightLb) {
         maxWeightLb = set.weightLb ?? 0
         bestSetReps = set.reps ?? 0
       }
     }
-    points.push({ date: log.date, maxWeightLb, volume, bestSetReps })
+    points.push({ date: log.date, maxWeightLb, volume, bestSetReps, durationMin })
   }
   return points
 }
@@ -63,4 +66,25 @@ export function personalBest(
   return history.reduce((best, p) =>
     p.maxWeightLb > best.maxWeightLb ? p : best,
   )
+}
+
+export function longestDuration(
+  logs: WorkoutLog[],
+  exerciseId: string,
+): ExerciseHistoryPoint | undefined {
+  const history = exerciseHistory(logs, exerciseId)
+  if (history.length === 0) return undefined
+  return history.reduce((best, p) =>
+    p.durationMin > best.durationMin ? p : best,
+  )
+}
+
+// True for exercises tracked purely by time (e.g. cardio machines), where
+// weight/reps-based stats like volume and personal-best weight don't apply.
+export function isDurationBased(history: ExerciseHistoryPoint[]): boolean {
+  const hasStrengthData = history.some(
+    (h) => h.maxWeightLb > 0 || h.bestSetReps > 0,
+  )
+  const hasDurationData = history.some((h) => h.durationMin > 0)
+  return hasDurationData && !hasStrengthData
 }

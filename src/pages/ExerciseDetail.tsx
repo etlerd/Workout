@@ -4,7 +4,12 @@ import { addCustomExercise, useExercises, useLogs } from '../data/repo'
 import Card from '../components/Card'
 import Badge from '../components/Badge'
 import type { Equipment, MuscleGroup } from '../types'
-import { exerciseHistory, personalBest } from '../utils/stats'
+import {
+  exerciseHistory,
+  isDurationBased,
+  longestDuration,
+  personalBest,
+} from '../utils/stats'
 
 const categories: MuscleGroup[] = [
   'Chest',
@@ -46,8 +51,10 @@ function ExerciseView({ id }: { id: string }) {
     )
   }
 
-  const best = personalBest(logs, id)
   const history = exerciseHistory(logs, id)
+  const durationBased = isDurationBased(history)
+  const best = durationBased ? undefined : personalBest(logs, id)
+  const bestDuration = durationBased ? longestDuration(logs, id) : undefined
 
   return (
     <div className="space-y-4 max-w-2xl">
@@ -70,6 +77,22 @@ function ExerciseView({ id }: { id: string }) {
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
             {new Date(best.date).toLocaleDateString()} · logged {history.length} time
+            {history.length === 1 ? '' : 's'}
+          </p>
+        </Card>
+      )}
+
+      {bestDuration && (
+        <Card>
+          <p className="text-xs text-gray-400 uppercase tracking-wide">
+            Longest Session
+          </p>
+          <p className="text-lg text-white font-medium mt-1">
+            {bestDuration.durationMin} min
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {new Date(bestDuration.date).toLocaleDateString()} · logged{' '}
+            {history.length} time
             {history.length === 1 ? '' : 's'}
           </p>
         </Card>
