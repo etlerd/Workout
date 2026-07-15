@@ -11,6 +11,7 @@ import {
   longestDuration,
   personalBest,
 } from '../utils/stats'
+import { parseLocalDate } from '../utils/date'
 
 const categories: MuscleGroup[] = [
   'Chest',
@@ -84,7 +85,7 @@ function ExerciseView({ id }: { id: string }) {
             {best.maxWeightLb} lbs × {best.bestSetReps} reps
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {new Date(best.date).toLocaleDateString()} · logged {history.length} time
+            {parseLocalDate(best.date).toLocaleDateString()} · logged {history.length} time
             {history.length === 1 ? '' : 's'}
           </p>
         </Card>
@@ -99,7 +100,7 @@ function ExerciseView({ id }: { id: string }) {
             {bestDuration.durationMin} min
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {new Date(bestDuration.date).toLocaleDateString()} · logged{' '}
+            {parseLocalDate(bestDuration.date).toLocaleDateString()} · logged{' '}
             {history.length} time
             {history.length === 1 ? '' : 's'}
           </p>
@@ -115,7 +116,7 @@ function ExerciseView({ id }: { id: string }) {
             {bestDistancePoint.distanceMi} mi
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {new Date(bestDistancePoint.date).toLocaleDateString()}
+            {parseLocalDate(bestDistancePoint.date).toLocaleDateString()}
           </p>
         </Card>
       )}

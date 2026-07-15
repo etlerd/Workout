@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useExercises, useLogs, usePrograms } from '../data/repo'
 import Card from '../components/Card'
 import { logsInLastDays, logVolume, sortedByDateDesc } from '../utils/stats'
+import { parseLocalDate } from '../utils/date'
 
 export default function Dashboard() {
   const logs = useLogs()
@@ -113,7 +114,7 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <span className="text-xs text-gray-500">
-                      {new Date(log.date).toLocaleDateString()}
+                      {parseLocalDate(log.date).toLocaleDateString()}
                     </span>
                   </div>
                 </Card>
