@@ -11,6 +11,7 @@ import {
 import { useExercises, useLogs } from '../data/repo'
 import Card from '../components/Card'
 import { exerciseHistory, isDurationBased } from '../utils/stats'
+import { parseLocalDate } from '../utils/date'
 
 const ACCENT = '#34d399'
 const GRID = '#2a2f3a'
@@ -38,7 +39,7 @@ export default function Progress() {
   const hasLevelData = history.some((h) => h.maxLevel > 0)
 
   const chartData = history.map((h) => ({
-    date: new Date(h.date).toLocaleDateString(undefined, {
+    date: parseLocalDate(h.date).toLocaleDateString(undefined, {
       month: 'short',
       day: 'numeric',
     }),

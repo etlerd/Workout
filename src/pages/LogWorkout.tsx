@@ -26,6 +26,7 @@ import {
   parseTargetReps,
   parseTargetWeight,
 } from '../utils/targetParsing'
+import { localDateStr } from '../utils/date'
 
 const CELEBRATION_DELAY_MS = 1400
 
@@ -72,10 +73,6 @@ function setsFromLogged(sets: SetEntry[]): EditableSet[] {
         distanceMi: s.distanceMi?.toString() ?? '',
       }))
     : [emptySet()]
-}
-
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
 }
 
 function itemsForDay(day: ProgramDay): EditableExercise[] {
@@ -155,7 +152,7 @@ export default function LogWorkout() {
     return mostRecentLogSelection(logs).dayId
   })
 
-  const [date, setDate] = useState(existingLog?.date ?? todayStr())
+  const [date, setDate] = useState(existingLog?.date ?? localDateStr())
   const [name, setName] = useState(() => {
     if (existingLog) return existingLog.name
     const program = programs.find((p) => p.id === selectedProgramId)

@@ -1,4 +1,5 @@
 import type { WorkoutLog } from '../types'
+import { localDateStr } from './date'
 
 export function setVolume(reps?: number, weightLb?: number): number {
   if (!reps || !weightLb) return 0
@@ -20,7 +21,7 @@ export function sortedByDateDesc(logs: WorkoutLog[]): WorkoutLog[] {
 export function logsInLastDays(logs: WorkoutLog[], days: number): WorkoutLog[] {
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - days)
-  const cutoffStr = cutoff.toISOString().slice(0, 10)
+  const cutoffStr = localDateStr(cutoff)
   return logs.filter((l) => l.date >= cutoffStr)
 }
 

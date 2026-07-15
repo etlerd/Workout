@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useExercises, useLogs } from '../data/repo'
 import Card from '../components/Card'
 import { logVolume, sortedByDateDesc } from '../utils/stats'
+import { parseLocalDate } from '../utils/date'
 
 export default function History() {
   const logs = useLogs()
@@ -39,7 +40,7 @@ export default function History() {
                 <div>
                   <h2 className="font-medium text-white">{log.name}</h2>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {new Date(log.date).toLocaleDateString(undefined, {
+                    {parseLocalDate(log.date).toLocaleDateString(undefined, {
                       weekday: 'short',
                       month: 'short',
                       day: 'numeric',
